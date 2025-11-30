@@ -125,7 +125,7 @@ class DashboardService {
   async getIrrigationRecommendation(params) {
     try {
       const queryString = new URLSearchParams(params).toString();
-      const url = `/irrigation/recommendation${queryString ? `?${queryString}` : ''}`;
+      const url = `/api/irrigation/recommendation${queryString ? `?${queryString}` : ''}`;
       return await apiGet(url);
     } catch (error) {
       console.error('Error fetching irrigation recommendation:', error);

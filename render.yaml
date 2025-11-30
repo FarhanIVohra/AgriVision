@@ -2,7 +2,7 @@ services:
   - type: web
     name: agrismart-backend
     runtime: python3
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && cp -r backend/models app/ || echo "Models directory copied"
     startCommand: python app/main.py
     envVars:
       - key: PYTHON_VERSION

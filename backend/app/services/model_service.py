@@ -26,7 +26,7 @@ class ModelService:
         if cls._instance is None:
             print("Initializing ModelService singleton...")
             cls._instance = super(ModelService, cls).__new__(cls)
-            MODELS_DIR = Path(__file__).parent.parent.parent / 'models'
+            MODELS_DIR = Path(__file__).parent.parent.parent.parent / 'models'
             cls.model_path = MODELS_DIR / "crop_recommender.joblib"
             cls.profit_service = ProfitPredictionService()
             cls.crop_mapping = {

@@ -4,7 +4,7 @@ const profitableCropsService = {
   // Get available crops for selection
   async getAvailableCrops() {
     try {
-      return await apiGet('/profitable-crops/available-crops');
+      return await apiGet('/api/profitable-crops/available-crops');
     } catch (error) {
       console.error('Error fetching available crops:', error);
       throw error;
@@ -14,7 +14,7 @@ const profitableCropsService = {
   // Get market trends data
   async getMarketTrends() {
     try {
-      return await apiGet('/profitable-crops/market-trends');
+      return await apiGet('/api/profitable-crops/market-trends');
     } catch (error) {
       console.error('Error fetching market trends:', error);
       throw error;
@@ -24,7 +24,7 @@ const profitableCropsService = {
   // Predict multiple profitable crops
   async predictMultiple(formData) {
     try {
-      return await apiPost('/profitable-crops/predict-multiple', formData);
+      return await apiPost('/api/profitable-crops/predict-multiple', formData);
     } catch (error) {
       console.error('Error predicting profitable crops:', error);
       throw error;

@@ -14,7 +14,7 @@ export const soilHealthService = {
   // Analyze soil health
   async analyzeSoilHealth(soilData) {
     try {
-      return await apiPost('/soil-health/analyze', soilData);
+      return await apiPost('/api/soil-health/analyze', soilData);
     } catch (error) {
       console.error('Error analyzing soil health:', error);
       throw error;

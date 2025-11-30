@@ -26,7 +26,7 @@ class NewYieldPredictionService:
         """Load the RandomForest model and reference data"""
         try:
             # Model path
-            model_path = Path("ml_models/saved_models/crop_yield_model.joblib")
+            model_path = Path(__file__).parent.parent.parent / 'models' / "crop_yield_model.joblib"
             
             if not model_path.exists():
                 logger.warning(f"New model not found at {model_path}")
@@ -37,7 +37,7 @@ class NewYieldPredictionService:
             logger.info(f"Loaded RandomForest model: {type(self.model).__name__}")
             
             # Load reference dataset for feature engineering
-            data_path = Path("ml_models/saved_models/crop_yield.csv")
+            data_path = Path(__file__).parent.parent.parent / 'models' / "crop_yield.csv"
             if data_path.exists():
                 self.reference_data = pd.read_csv(data_path)
                 logger.info(f"Loaded reference data: {self.reference_data.shape}")

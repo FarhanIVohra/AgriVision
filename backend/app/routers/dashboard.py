@@ -529,73 +529,7 @@ async def get_weather_data(current_user: dict = Depends(get_current_user)):
             detail="Failed to retrieve weather data"
         )
 
-@router.get("/soil")
-async def get_soil_data(current_user: dict = Depends(get_current_user)):
-    """
-    Get soil health data for dashboard
-    """
-    try:
-        logger.info(f"Retrieving soil data for user: {current_user['email']}")
-        
-        # Generate sample soil health data
-        soil_data = {
-            "ph_level": round(6.5 + (random.random() - 0.5) * 1.0, 1),
-            "nitrogen": round(45 + (random.random() - 0.5) * 10, 1),
-            "phosphorus": round(30 + (random.random() - 0.5) * 8, 1),
-            "potassium": round(40 + (random.random() - 0.5) * 12, 1),
-            "organic_matter": round(3.2 + (random.random() - 0.5) * 0.8, 1),
-            "moisture": round(25 + (random.random() - 0.5) * 10, 1),
-            "temperature": round(22 + (random.random() - 0.5) * 6, 1),
-            "conductivity": round(1.2 + (random.random() - 0.5) * 0.4, 2),
-            "health_score": round(75 + random.random() * 20, 1),
-            "status": "Good",
-            "last_updated": datetime.now().isoformat()
-        }
-        
-        # Add health scores for different parameters
-        health_scores = {
-            "ph": min(100, max(0, 100 - abs(soil_data["ph_level"] - 6.8) * 20)),
-            "nitrogen": min(100, max(0, 100 - abs(soil_data["nitrogen"] - 50) * 2)),
-            "phosphorus": min(100, max(0, 100 - abs(soil_data["phosphorus"] - 35) * 3)),
-            "potassium": min(100, max(0, 100 - abs(soil_data["potassium"] - 45) * 2.5)),
-            "organic_matter": min(100, max(0, soil_data["organic_matter"] * 25)),
-            "moisture": min(100, max(0, 100 - abs(soil_data["moisture"] - 30) * 2))
-        }
-        
-        soil_data["health_scores"] = health_scores
-        
-        # Generate recommendations
-        recommendations = []
-        if soil_data["ph_level"] < 6.0:
-            recommendations.append("Apply lime to increase soil pH")
-        elif soil_data["ph_level"] > 7.5:
-            recommendations.append("Apply sulfur to decrease soil pH")
-        
-        if soil_data["nitrogen"] < 40:
-            recommendations.append("Apply nitrogen fertilizer")
-        if soil_data["phosphorus"] < 25:
-            recommendations.append("Add phosphorus supplement")
-        if soil_data["potassium"] < 35:
-            recommendations.append("Apply potassium fertilizer")
-        if soil_data["organic_matter"] < 2.5:
-            recommendations.append("Add organic compost")
-        
-        if not recommendations:
-            recommendations.append("Soil conditions are optimal")
-        
-        soil_data["recommendations"] = recommendations
-        
-        return {
-            "success": True,
-            "data": soil_data
-        }
-        
-    except Exception as e:
-        logger.error(f"Soil data error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve soil data"
-        )
+
 
 @router.get("/weather/forecast")
 async def get_weather_forecast(
@@ -1402,100 +1336,78 @@ async def predict_yield(
                 logger.error(f"New model prediction failed: {str(new_model_error)}")
                 logger.info("Falling back to original model")
         
-        # Fallback to original model (heuristic, no external files)
-        state_mapping = {request.state: 0}
-        district_mapping = {request.district: 0}
-        crop_mapping = {request.crop: 0}
-        season_mapping = {request.season: 0}
-        
-        # Map inputs with fallback to first available option
-        state_id = state_mapping.get(request.state, 0)
-        district_id = district_mapping.get(request.district, 0)
-        crop_id = crop_mapping.get(request.crop, 0)
-        season_id = season_mapping.get(request.season, 0)
-        
+        # Fallback to heuristic model (no external files needed)
+        logger.info("Using heuristic fallback for yield prediction")
+
         # Use the area from request
         area = float(request.area)
-        
-        # Estimate production based on area and crop type (simplified approach)
-        # This is a rough estimation - in real scenario, this would be more sophisticated
-        crop_yield_estimates = {
-            'Rice': 3.5, 'Wheat': 3.2, 'Maize': 4.8, 'Sugarcane': 70.0,
-            'Cotton(lint)': 1.8, 'Groundnut': 2.1, 'Soyabean': 1.5
-        }
-        base_yield = crop_yield_estimates.get(request.crop, 2.5)
-        estimated_production = area * base_yield
-        
-        # Prepare model inputs based on the original model structure
-        model_inputs = {
-            'state_input': np.array([[state_id]], dtype=np.float32),
-            'district_input': np.array([[district_id]], dtype=np.float32),
-            'season_input': np.array([[season_id]], dtype=np.float32),
-            'crop_input': np.array([[crop_id]], dtype=np.float32),
-            'numerical_input': np.array([[area, estimated_production]], dtype=np.float32)
-        }
-        
-        # Make prediction
-        prediction = yield_model.predict(model_inputs)
-        raw_prediction = float(prediction[0][0])
-        
-        # The model seems to predict production values, not yield per hectare
-        # Apply realistic yield bounds based on crop type and normalize the prediction
+
+        # Get realistic yield bounds based on crop type
         crop_realistic_yields = {
             'Rice': (2.0, 6.0),      # tons/ha
-            'Wheat': (2.5, 5.5),     # tons/ha  
+            'Wheat': (2.5, 5.5),     # tons/ha
             'Maize': (3.0, 8.0),     # tons/ha
             'Sugarcane': (40.0, 80.0), # tons/ha
+            'Cotton': (1.0, 3.0),    # tons/ha
             'Cotton(lint)': (1.0, 3.0), # tons/ha
             'Groundnut': (1.5, 3.5),   # tons/ha
-            'Soyabean': (1.0, 3.0)     # tons/ha
+            'Soyabean': (1.0, 3.0),    # tons/ha
+            'Soybean': (1.0, 3.0)      # tons/ha
         }
-        
+
         # Get realistic range for the crop
         min_yield, max_yield = crop_realistic_yields.get(request.crop, (1.5, 4.5))
-        
-        # Normalize the raw prediction to realistic yield range
-        # Use a sigmoid-like function to map model output to realistic range
-        import math
-        normalized_factor = 1 / (1 + math.exp(-raw_prediction / 1000))  # Sigmoid normalization
-        predicted_yield = min_yield + (max_yield - min_yield) * normalized_factor
-        
-        # Add some variability based on input parameters
+
+        # Base yield estimation
+        crop_yield_estimates = {
+            'Rice': 3.5, 'Wheat': 3.2, 'Maize': 4.8, 'Sugarcane': 70.0,
+            'Cotton': 1.8, 'Cotton(lint)': 1.8, 'Groundnut': 2.1,
+            'Soyabean': 1.5, 'Soybean': 1.5
+        }
+        base_yield = crop_yield_estimates.get(request.crop, 2.5)
+
+        # Apply state factors
         state_factor = 1.0
         if request.state in ["Punjab", "Haryana", "Uttar Pradesh"]:
             state_factor = 1.1  # Higher productivity states
         elif request.state in ["Rajasthan", "Maharashtra", "Karnataka"]:
             state_factor = 0.95  # Moderate productivity
-        
+
+        # Apply season factors
         season_factor = 1.0
         if request.season == "Kharif":
             season_factor = 1.05  # Monsoon season advantage
         elif request.season == "Summer":
             season_factor = 0.9   # Summer season challenge
-            
-        # Apply factors
-        predicted_yield = predicted_yield * state_factor * season_factor
-        
+
+        # Calculate predicted yield with factors
+        predicted_yield = base_yield * state_factor * season_factor
+
+        # Add some realistic variation
+        import random
+        variation = random.uniform(-0.3, 0.3)  # ±30% variation
+        predicted_yield = predicted_yield * (1 + variation)
+
         # Ensure final bounds
         predicted_yield = max(min_yield * 0.8, min(predicted_yield, max_yield * 1.2))
-        
+
         # Calculate total production
         total_production = predicted_yield * area
-        
-        # Calculate confidence based on data availability
-        base_confidence = 70
-        
-        # Adjust confidence based on input validity
-        if request.state in state_mapping:
-            base_confidence += 5
-        if request.district in district_mapping:
-            base_confidence += 5
-        if request.crop in crop_mapping:
-            base_confidence += 10
-        if request.season in season_mapping:
-            base_confidence += 5
-        
-        confidence = min(95, base_confidence)
+
+        # Calculate confidence based on known parameters
+        confidence = 75  # Base confidence for heuristic
+
+        # Adjust confidence based on parameter validity
+        if request.state and request.state.strip():
+            confidence += 5
+        if request.district and request.district.strip():
+            confidence += 5
+        if request.crop and request.crop.strip():
+            confidence += 10
+        if request.season and request.season.strip():
+            confidence += 5
+
+        confidence = min(95, confidence)
         
         # Generate yield category
         if predicted_yield >= 5.0:
